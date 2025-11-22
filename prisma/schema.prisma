@@ -1,0 +1,276 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model ActivityLog {
+  id          String   @id
+  action      String
+  category    String?
+  description String?
+  details     String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  userId      String
+  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivityType {
+  id   String @id
+  name String @unique
+}
+
+model Category {
+  id          String    @id
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  Product     Product[]
+}
+
+model Debt {
+  id              String    @id
+  companyName     String
+  deliveryDate    DateTime?
+  receiveDate     DateTime?
+  invoice         String?
+  purchaseContent String?
+  totalAmount     Float     @default(0)
+  remainingAmount Float     @default(0)
+  collectedAmount Float     @default(0)
+  paymentDate     DateTime
+  notes           String?   @default("")
+  userId          String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  User            User      @relation(fields: [userId], references: [id])
+}
+
+model Order {
+  id                 String      @id
+  code               String      @unique
+  date               DateTime
+  customer           String
+  address            String?
+  phone              String?
+  description        String?
+  totalAmount        Float
+  hasInvoice         Boolean     @default(false)
+  hasVAT             Boolean     @default(false)
+  userId             String
+  warehouseId        String
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime
+  status             String      @default("DRAFT")
+  documentPath       String?
+  paymentReceiptPath String?
+  Warehouse          Warehouse   @relation(fields: [warehouseId], references: [id])
+  User               User        @relation(fields: [userId], references: [id])
+  OrderItem          OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+  amount    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Product   Product  @relation(fields: [productId], references: [id])
+  Order     Order    @relation(fields: [orderId], references: [id])
+}
+
+model Product {
+  id                                                  String              @id
+  code                                                String              @unique
+  name                                                String
+  description                                         String?
+  categoryId                                          String
+  unit                                                String
+  costPrice                                           Float               @default(0)
+  price                                               Float               @default(0)
+  priceMin                                            Float               @default(0)
+  priceMax                                            Float               @default(0)
+  supplier                                            String?
+  kgPerBag                                            Float               @default(25.0)
+  invoiceQuantity                                     Int                 @default(0)
+  vat                                                 Float               @default(0)
+  isUnlimited                                         Boolean             @default(false)
+  createdAt                                           DateTime            @default(now())
+  updatedAt                                           DateTime
+  OrderItem                                           OrderItem[]
+  Category                                            Category            @relation(fields: [categoryId], references: [id])
+  ProductBundle_ProductBundle_childProductIdToProduct ProductBundle[]     @relation("ProductBundle_childProductIdToProduct")
+  ProductBundle_ProductBundle_mainProductIdToProduct  ProductBundle[]     @relation("ProductBundle_mainProductIdToProduct")
+  StockItem                                           StockItem[]
+  StockTransferItem                                   StockTransferItem[]
+}
+
+model ProductBundle {
+  id                                            String   @id
+  mainProductId                                 String
+  childProductId                                String
+  quantity                                      Float    @default(1.0)
+  createdAt                                     DateTime @default(now())
+  updatedAt                                     DateTime
+  Product_ProductBundle_childProductIdToProduct Product  @relation("ProductBundle_childProductIdToProduct", fields: [childProductId], references: [id], onDelete: Cascade)
+  Product_ProductBundle_mainProductIdToProduct  Product  @relation("ProductBundle_mainProductIdToProduct", fields: [mainProductId], references: [id], onDelete: Cascade)
+
+  @@unique([mainProductId, childProductId])
+}
+
+model Role {
+  id   String @id
+  name String @unique
+}
+
+model StockIssue {
+  id             String           @id
+  code           String           @unique
+  date           DateTime
+  receiver       String
+  description    String?
+  totalAmount    Float
+  userId         String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  status         String           @default("DRAFT")
+  documentPath   String?
+  User           User             @relation(fields: [userId], references: [id])
+  StockIssueItem StockIssueItem[]
+}
+
+model StockIssueItem {
+  id                 String     @id
+  issueId            String
+  stockItemId        String
+  quantity           Int
+  price              Float
+  amount             Float
+  useInvoiceQuantity Boolean    @default(false)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime
+  StockItem          StockItem  @relation(fields: [stockItemId], references: [id])
+  StockIssue         StockIssue @relation(fields: [issueId], references: [id])
+}
+
+model StockItem {
+  id               String             @id
+  productId        String
+  warehouseId      String
+  quantity         Int
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  StockIssueItem   StockIssueItem[]
+  Warehouse        Warehouse          @relation(fields: [warehouseId], references: [id])
+  Product          Product            @relation(fields: [productId], references: [id])
+  StockReceiptItem StockReceiptItem[]
+
+  @@unique([productId, warehouseId])
+}
+
+model StockReceipt {
+  id               String             @id
+  code             String             @unique
+  date             DateTime
+  supplier         String
+  description      String?
+  totalAmount      Float
+  userId           String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  status           String             @default("DRAFT")
+  documentPath     String?
+  User             User               @relation(fields: [userId], references: [id])
+  StockReceiptItem StockReceiptItem[]
+}
+
+model StockReceiptItem {
+  id                 String       @id
+  receiptId          String
+  stockItemId        String
+  quantity           Int
+  price              Float
+  amount             Float
+  useInvoiceQuantity Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime
+  StockItem          StockItem    @relation(fields: [stockItemId], references: [id])
+  StockReceipt       StockReceipt @relation(fields: [receiptId], references: [id])
+}
+
+model StockTransfer {
+  id                                                 String              @id
+  code                                               String              @unique
+  date                                               DateTime
+  fromWarehouseId                                    String
+  toWarehouseId                                      String
+  description                                        String?
+  warehouseKeeperOut                                 String?
+  warehouseKeeperIn                                  String?
+  transporterName                                    String?
+  vehicleInfo                                        String?
+  totalAmount                                        Float               @default(0)
+  documentPath                                       String?
+  userId                                             String
+  createdAt                                          DateTime            @default(now())
+  updatedAt                                          DateTime
+  status                                             String              @default("COMPLETED")
+  User                                               User                @relation(fields: [userId], references: [id])
+  Warehouse_StockTransfer_toWarehouseIdToWarehouse   Warehouse           @relation("StockTransfer_toWarehouseIdToWarehouse", fields: [toWarehouseId], references: [id])
+  Warehouse_StockTransfer_fromWarehouseIdToWarehouse Warehouse           @relation("StockTransfer_fromWarehouseIdToWarehouse", fields: [fromWarehouseId], references: [id])
+  StockTransferItem                                  StockTransferItem[]
+}
+
+model StockTransferItem {
+  id            String        @id
+  transferId    String
+  productId     String
+  quantityOut   Float
+  quantityIn    Float
+  price         Float         @default(0)
+  amount        Float         @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  Product       Product       @relation(fields: [productId], references: [id])
+  StockTransfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id              String          @id
+  username        String?         @unique
+  name            String
+  email           String          @unique
+  hashedPassword  String
+  role            String          @default("USER")
+  permissions     String?         @default("")
+  pagePermissions String?         @default("{}")
+  createdAt       DateTime        @default(now())
+  ActivityLog     ActivityLog[]
+  Debt            Debt[]
+  Order           Order[]
+  StockIssue      StockIssue[]
+  StockReceipt    StockReceipt[]
+  StockTransfer   StockTransfer[]
+}
+
+model Warehouse {
+  id                                                     String          @id
+  name                                                   String          @unique
+  address                                                String?
+  description                                            String?
+  createdAt                                              DateTime        @default(now())
+  updatedAt                                              DateTime
+  Order                                                  Order[]
+  StockItem                                              StockItem[]
+  StockTransfer_StockTransfer_toWarehouseIdToWarehouse   StockTransfer[] @relation("StockTransfer_toWarehouseIdToWarehouse")
+  StockTransfer_StockTransfer_fromWarehouseIdToWarehouse StockTransfer[] @relation("StockTransfer_fromWarehouseIdToWarehouse")
+}
