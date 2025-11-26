@@ -1,253 +1,399 @@
-/**
- * Modern Sidebar Component - Complete Redesign
- * Clean, Professional, Unified Design
- */
+"use client"
 
-'use client';
-
-import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
-import { hasPageAccess as checkPageAccess } from '@/lib/permissionsConfig';
-import { cn } from '@/lib/utils';
+import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion"
+import { cn } from "@/lib/utils"
 import {
-    Home,
+    LayoutDashboard,
     Package,
-    ClipboardList,
-    Gift,
-    Download,
-    FileText,
-    ArrowRightLeft,
+    Warehouse,
     ShoppingCart,
-    Files,
-    BarChart3,
+    FileText,
     Users,
-    TrendingUp,
-    Factory,
-    Folder,
-    History,
-    FileEdit,
-    HardDrive,
-    Save,
-    LogOut,
+    Settings,
+    BarChart3,
+    PackagePlus,
+    PackageMinus,
+    ArrowLeftRight,
+    FolderTree,
+    Shield,
+    Activity,
+    Database,
+    ChevronLeft,
+    ChevronRight,
     Menu,
-    X
-} from 'lucide-react';
+    LogOut,
+    HelpCircle,
+    ChevronDown,
+    MoreVertical,
+} from "lucide-react"
+import { Button } from "@/components/ui/Button"
+import { Separator } from "@/components/ui/Separator"
+import { ScrollArea } from "@/components/ui/ScrollArea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/Tooltip"
+import { useAuthStore } from "@/stores/authStore"
+import { useRouter } from "next/navigation"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/DropdownMenu"
 
-interface MenuItem {
-    key: string;
-    label: string;
-    href: string;
-    icon: React.ReactNode;
+interface SidebarProps {
+    collapsed: boolean
+    onToggle: () => void
 }
 
-const menuItems: MenuItem[] = [
-    { key: 'dashboard', label: 'Trang chủ', href: '/dashboard', icon: <Home size={20} /> },
-    { key: 'inventory', label: 'Tổng quan Kho', href: '/inventory', icon: <Package size={20} /> },
-    { key: 'stock_details', label: 'Chi tiết Tồn kho', href: '/stock-details', icon: <ClipboardList size={20} /> },
-    { key: 'products', label: 'Sản phẩm', href: '/products', icon: <Gift size={20} /> },
-    { key: 'receipt', label: 'Nhập Kho', href: '/receipts', icon: <Download size={20} /> },
-    { key: 'issue', label: 'Biên Bản Giao Nhận', href: '/issues', icon: <FileText size={20} /> },
-    { key: 'transfer', label: 'Chuyển Kho', href: '/transfers', icon: <ArrowRightLeft size={20} /> },
-    { key: 'order', label: 'Tạo Đơn hàng', href: '/orders', icon: <ShoppingCart size={20} /> },
-    { key: 'management', label: 'Quản lý Chứng từ', href: '/management', icon: <Files size={20} /> },
-    { key: 'reports', label: 'Báo cáo & Thống kê', href: '/reports', icon: <BarChart3 size={20} /> },
-];
+const menuItems = [
+    {
+        title: "Tổng quan",
+        icon: LayoutDashboard,
+        href: "/dashboard",
+    },
+    {
+        title: "Quản lý kho",
+        icon: Warehouse,
+        items: [
+            { title: "Tổng quan tồn kho", icon: Package, href: "/inventory/overview" },
+            { title: "Danh sách sản phẩm", icon: Package, href: "/products" },
+            { title: "Danh mục", icon: FolderTree, href: "/categories" },
+            { title: "Kho hàng", icon: Warehouse, href: "/warehouses" },
+        ],
+    },
+    {
+        title: "Giao dịch",
+        icon: ShoppingCart,
+        items: [
+            { title: "Đơn hàng", icon: ShoppingCart, href: "/orders" },
+            { title: "Nhập kho", icon: PackagePlus, href: "/receipts" },
+            { title: "Xuất kho", icon: PackageMinus, href: "/issues" },
+            { title: "Chuyển kho", icon: ArrowLeftRight, href: "/transfers" },
+            { title: "Khách hàng", icon: Users, href: "/customers" },
+        ],
+    },
+    {
+        title: "Báo cáo",
+        icon: BarChart3,
+        items: [
+            { title: "Tổng quan", icon: BarChart3, href: "/reports" },
+            { title: "Tồn kho", icon: Package, href: "/reports/inventory" },
+            { title: "Doanh thu", icon: ShoppingCart, href: "/reports/sales" },
+        ],
+    },
+    {
+        title: "Hệ thống",
+        icon: Settings,
+        items: [
+            { title: "Chứng từ mẫu", icon: FileText, href: "/document-templates" },
+            { title: "Cài đặt chứng từ", icon: Settings, href: "/document-settings" },
+            { title: "Điều chỉnh tồn kho", icon: Settings, href: "/inventory/adjustments" },
+            { title: "Người dùng", icon: Users, href: "/users" },
+            { title: "Phân quyền", icon: Shield, href: "/admin/permissions" },
+            { title: "Nhật ký", icon: Activity, href: "/activity-logs" },
+            { title: "Sao lưu", icon: Database, href: "/admin/backup" },
+            { title: "Cấu hình", icon: Settings, href: "/settings" },
+        ],
+    },
+]
 
-const adminMenuItems: MenuItem[] = [
-    { key: 'admin', label: 'Quản lý Tài khoản', href: '/admin', icon: <Users size={20} /> },
-    { key: 'admin-products', label: 'Quản Lý Số Lượng SP', href: '/admin/products', icon: <TrendingUp size={20} /> },
-    { key: 'warehouses', label: 'Quản lý Kho', href: '/warehouses', icon: <Factory size={20} /> },
-    { key: 'categories', label: 'Quản lý Danh mục', href: '/categories', icon: <Folder size={20} /> },
-    { key: 'history', label: 'Lịch sử Hoạt động', href: '/history', icon: <History size={20} /> },
-    { key: 'template-config', label: 'Cấu Hình Template PDF', href: '/template-config', icon: <FileEdit size={20} /> },
-    { key: 'storage-config', label: 'Cấu Hình Đường Dẫn', href: '/storage-config', icon: <HardDrive size={20} /> },
-    { key: 'backup', label: 'Quản Lý Backup', href: '/backup', icon: <Save size={20} /> },
-];
+export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+    const pathname = usePathname()
+    const router = useRouter()
+    const { user, logout } = useAuthStore()
+    const [openMenus, setOpenMenus] = React.useState<string[]>(["Quản lý kho", "Giao dịch"])
+    const [isMobileOpen, setIsMobileOpen] = React.useState(false)
 
-interface MenuLinkProps {
-    item: MenuItem;
-    isActive: boolean;
-    onClick?: () => void;
-}
-
-const MenuLink: React.FC<MenuLinkProps> = ({ item, isActive, onClick }) => {
-    return (
-        <Link
-            href={item.href}
-            prefetch={true}
-            onClick={onClick}
-            className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-                isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-            )}
-        >
-            <span className="text-gray-500">{item.icon}</span>
-            <span>{item.label}</span>
-            {isActive && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-            )}
-        </Link>
-    );
-};
-
-export const Sidebar: React.FC = () => {
-    const pathname = usePathname();
-    const { user, logout } = useAuthStore();
-    const [isOpen, setIsOpen] = useState(false);
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    useEffect(() => {
-        setIsOpen(false);
-    }, [pathname]);
-
-    const { filteredItems, filteredAdminItems, isAdmin, isAuthenticated } = useMemo(() => {
-        if (!user) {
-            return {
-                filteredItems: [],
-                filteredAdminItems: [],
-                isAdmin: false,
-                isAuthenticated: false,
-            };
-        }
-
-        const pagePermissions = user.pagePermissions ?? {};
-        const admin = user.role === 'ADMIN';
-
-        return {
-            filteredItems: menuItems.filter((item) =>
-                checkPageAccess(pagePermissions, item.key, admin)
-            ),
-            filteredAdminItems: adminMenuItems.filter((item) =>
-                checkPageAccess(pagePermissions, item.key, admin)
-            ),
-            isAdmin: admin,
-            isAuthenticated: true,
-        };
-    }, [user]);
-
-    if (!mounted || !isAuthenticated || !user) {
-        return null;
+    const toggleMenu = (title: string) => {
+        if (collapsed) return
+        setOpenMenus((prev) =>
+            prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]
+        )
     }
+
+    const isActive = (href: string) => {
+        return pathname === href || pathname?.startsWith(href + "/")
+    }
+
+    const handleLogout = () => {
+        logout()
+        router.push("/login")
+    }
+
+    // Close mobile menu on route change
+    React.useEffect(() => {
+        setIsMobileOpen(false)
+    }, [pathname])
+
+    const SidebarContent = () => (
+        <div className="flex h-full flex-col bg-card/95 backdrop-blur-md shadow-xl overflow-hidden rounded-2xl border border-border/50">
+            {/* Logo Area */}
+            <div className={cn(
+                "flex h-20 items-center px-6 transition-all duration-300 flex-shrink-0",
+                collapsed ? "justify-center px-2" : "justify-between"
+            )}>
+                <Link href="/dashboard" className="flex items-center space-x-3 group overflow-hidden whitespace-nowrap">
+                    <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25 transition-transform group-hover:scale-105">
+                        <span className="text-xl font-bold">TL</span>
+                    </div>
+                    <motion.div
+                        initial={false}
+                        animate={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : "auto" }}
+                        transition={{ duration: 0.2 }}
+                        className="flex flex-col overflow-hidden"
+                    >
+                        <span className="text-lg font-bold text-foreground leading-none tracking-tight">Triệu Lợi</span>
+                        <span className="text-[10px] font-medium text-muted-foreground mt-1.5 uppercase tracking-wider">Warehouse</span>
+                    </motion.div>
+                </Link>
+            </div>
+
+            {/* Menu Items */}
+            <ScrollArea className="flex-1 px-3 py-2">
+                <nav className="space-y-1.5">
+                    <TooltipProvider delayDuration={0}>
+                        <LayoutGroup>
+                            {menuItems.map((item) => {
+                                const isParentActive = item.items?.some(sub => isActive(sub.href))
+                                const isOpen = openMenus.includes(item.title)
+
+                                if (item.items) {
+                                    return (
+                                        <div key={item.title} className="mb-2">
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        onClick={() => !collapsed && toggleMenu(item.title)}
+                                                        className={cn(
+                                                            "w-full justify-between group transition-all duration-200 relative overflow-hidden rounded-xl",
+                                                            collapsed ? "h-12 w-12 p-0 mx-auto" : "h-11 px-4",
+                                                            isParentActive
+                                                                ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                                                : "hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center flex-1 overflow-hidden">
+                                                            <item.icon className={cn(
+                                                                "h-[1.15rem] w-[1.15rem] flex-shrink-0 transition-colors",
+                                                                !collapsed && "mr-3",
+                                                                isParentActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                                            )} />
+                                                            <motion.span
+                                                                initial={false}
+                                                                animate={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : "auto" }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="whitespace-nowrap overflow-hidden font-medium"
+                                                            >
+                                                                {item.title}
+                                                            </motion.span>
+                                                        </div>
+                                                        {!collapsed && (
+                                                            <motion.div
+                                                                animate={{ rotate: isOpen ? 180 : 0 }}
+                                                                transition={{ duration: 0.2 }}
+                                                            >
+                                                                <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
+                                                            </motion.div>
+                                                        )}
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                {collapsed && (
+                                                    <TooltipContent side="right" className="font-medium z-50 ml-2">
+                                                        <p>{item.title}</p>
+                                                    </TooltipContent>
+                                                )}
+                                            </Tooltip>
+
+                                            <AnimatePresence initial={false}>
+                                                {!collapsed && isOpen && (
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: "auto", opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="ml-4 mt-1 space-y-1 pl-3 border-l-2 border-border/40">
+                                                            {item.items.map((subItem) => (
+                                                                <Link
+                                                                    key={subItem.href}
+                                                                    href={subItem.href}
+                                                                    className={cn(
+                                                                        "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-all duration-200 relative overflow-hidden group/item",
+                                                                        isActive(subItem.href)
+                                                                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 font-medium"
+                                                                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                                                    )}
+                                                                >
+                                                                    <span className="whitespace-nowrap truncate">{subItem.title}</span>
+                                                                </Link>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    )
+                                }
+
+                                return (
+                                    <Tooltip key={item.href}>
+                                        <TooltipTrigger asChild>
+                                            <Link
+                                                href={item.href!}
+                                                className={cn(
+                                                    "flex items-center rounded-xl transition-all duration-200 mb-2 relative overflow-hidden",
+                                                    collapsed ? "h-12 w-12 justify-center mx-auto" : "h-11 px-4",
+                                                    isActive(item.href!)
+                                                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                                                )}
+                                            >
+                                                <item.icon className={cn("h-[1.15rem] w-[1.15rem] flex-shrink-0", !collapsed && "mr-3")} />
+                                                <motion.span
+                                                    initial={false}
+                                                    animate={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : "auto" }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className="font-medium whitespace-nowrap overflow-hidden"
+                                                >
+                                                    {item.title}
+                                                </motion.span>
+                                            </Link>
+                                        </TooltipTrigger>
+                                        {collapsed && (
+                                            <TooltipContent side="right" className="font-medium z-50 ml-2">
+                                                <p>{item.title}</p>
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                )
+                            })}
+                        </LayoutGroup>
+                    </TooltipProvider>
+                </nav>
+            </ScrollArea>
+
+            {/* Profile Section */}
+            <div className="p-4 mt-auto">
+                <div className={cn(
+                    "rounded-xl bg-muted/40 border border-border/50 p-3 transition-all duration-300",
+                    collapsed ? "p-2 bg-transparent border-0" : ""
+                )}>
+                    <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between")}>
+                        <div className="flex items-center space-x-3 overflow-hidden">
+                            <Avatar className="h-9 w-9 border-2 border-background shadow-sm">
+                                <AvatarImage src={user?.avatar} />
+                                <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                                    {user?.name?.charAt(0) || "U"}
+                                </AvatarFallback>
+                            </Avatar>
+                            <motion.div
+                                initial={false}
+                                animate={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : "auto" }}
+                                className="flex flex-col overflow-hidden"
+                            >
+                                <span className="text-sm font-semibold truncate">{user?.name || "User"}</span>
+                                <span className="text-xs text-muted-foreground truncate">{user?.role || "Admin"}</span>
+                            </motion.div>
+                        </div>
+
+                        {!collapsed && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background rounded-lg">
+                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={() => router.push('/profile')}>
+                                        <Users className="mr-2 h-4 w-4" />
+                                        <span>Hồ sơ</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => router.push('/settings')}>
+                                        <Settings className="mr-2 h-4 w-4" />
+                                        <span>Cài đặt</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleLogout}>
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <span>Đăng xuất</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
+                </div>
+
+                {/* Toggle Button */}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onToggle}
+                    className={cn(
+                        "w-full mt-2 text-muted-foreground hover:text-foreground hover:bg-transparent",
+                        collapsed ? "h-8 w-8 p-0" : "h-8"
+                    )}
+                >
+                    {collapsed ? (
+                        <ChevronRight className="h-4 w-4" />
+                    ) : (
+                        <div className="flex items-center text-xs font-medium uppercase tracking-wider opacity-70">
+                            <ChevronLeft className="mr-1 h-3 w-3" />
+                            Thu gọn
+                        </div>
+                    )}
+                </Button>
+            </div>
+        </div>
+    )
 
     return (
         <>
             {/* Mobile Menu Button */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                aria-label="Toggle menu"
-            >
-                {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            <div className="fixed left-4 top-4 z-50 md:hidden">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsMobileOpen(!isMobileOpen)}
+                    className="shadow-lg bg-background rounded-xl"
+                >
+                    <Menu className="h-5 w-5" />
+                </Button>
+            </div>
 
-            {/* Overlay for mobile */}
-            {isOpen && (
-                <div
-                    className="md:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-                    onClick={() => setIsOpen(false)}
-                />
-            )}
-
-            {/* Sidebar */}
-            <aside
-                className={cn(
-                    'fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 shadow-lg transition-transform duration-300 ease-in-out z-50',
-                    'md:translate-x-0',
-                    isOpen ? 'translate-x-0' : '-translate-x-full'
-                )}
-            >
-                <div className="flex flex-col h-full">
-                    {/* Header */}
-                    <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">KW</span>
-                            </div>
-                            <div>
-                                <h1 className="text-lg font-bold text-gray-900">KhoWeb</h1>
-                                <p className="text-xs text-gray-500">v2.0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* User Info */}
-                    {user && (
-                        <div className="p-4 border-b border-gray-200 bg-gray-50">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <span className="text-blue-700 font-semibold text-sm">
-                                        {user.name?.charAt(0).toUpperCase() || 'U'}
-                                    </span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
-                                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Navigation */}
-                    <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-                        {/* Main Menu */}
-                        {filteredItems.length > 0 && (
-                            <div className="space-y-1">
-                                {filteredItems.map((item) => (
-                                    <MenuLink
-                                        key={item.key}
-                                        item={item}
-                                        isActive={pathname === item.href}
-                                        onClick={() => setIsOpen(false)}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Admin Menu */}
-                        {filteredAdminItems.length > 0 && (
-                            <>
-                                <div className="pt-4 pb-2">
-                                    <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                        Quản trị
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    {filteredAdminItems.map((item) => (
-                                        <MenuLink
-                                            key={item.key}
-                                            item={item}
-                                            isActive={pathname === item.href}
-                                            onClick={() => setIsOpen(false)}
-                                        />
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </nav>
-
-                    {/* Footer */}
-                    <div className="p-3 border-t border-gray-200 bg-gray-50">
-                        <button
-                            onClick={() => {
-                                logout();
-                                setIsOpen(false);
-                            }}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            {/* Mobile Sidebar Drawer */}
+            <AnimatePresence>
+                {isMobileOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
+                            onClick={() => setIsMobileOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+                            className="fixed inset-y-0 left-0 z-50 w-72 p-4 md:hidden"
                         >
-                            <LogOut size={20} />
-                            <span>Đăng xuất</span>
-                        </button>
-                    </div>
-                </div>
-            </aside>
+                            <SidebarContent />
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Desktop Sidebar */}
+            <motion.div
+                className={cn(
+                    "hidden h-screen md:flex sticky top-0 left-0 z-40 p-4 will-change-[width]",
+                )}
+                initial={false}
+                animate={{ width: collapsed ? 100 : 290 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            >
+                <SidebarContent />
+            </motion.div>
         </>
-    );
-};
+    )
+}

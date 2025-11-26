@@ -1,27 +1,42 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { LucideIcon } from "lucide-react"
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-    error?: string;
+export interface InputProps
+    extends React.InputHTMLAttributes<HTMLInputElement> {
+    icon?: LucideIcon
+    error?: string
 }
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, error, ...props }, ref) => {
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+    ({ className, type, icon: Icon, error, ...props }, ref) => {
         return (
             <div className="w-full">
-                <input
-                    ref={ref}
-                    className={cn(
-                        'block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-500',
-                        error && 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500',
-                        className
+                <div className="relative">
+                    {Icon && (
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <Icon className="h-4 w-4" />
+                        </div>
                     )}
-                    {...props}
-                />
-                {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+                    <input
+                        type={type}
+                        className={cn(
+                            "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all",
+                            Icon && "pl-10",
+                            error && "border-destructive focus-visible:ring-destructive",
+                            className
+                        )}
+                        ref={ref}
+                        {...props}
+                    />
+                </div>
+                {error && (
+                    <p className="mt-1 text-xs text-destructive">{error}</p>
+                )}
             </div>
-        );
+        )
     }
-);
+)
+Input.displayName = "Input"
 
-Input.displayName = 'Input';
+export { Input }

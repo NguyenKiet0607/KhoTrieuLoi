@@ -1,140 +1,284 @@
-'use client';
+"use client"
 
-import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
-import { OrderForm } from '@/components/forms/OrderForm';
-import { showToast } from '@/components/ui/Toast';
-import { generateOrderPDF } from '@/lib/pdfGenerator';
-import apiClient from '@/lib/api';
+import React, { useEffect, useState } from "react"
+import {
+    Plus,
+    Eye,
+    Trash2,
+    Search,
+    Filter,
+    RefreshCw,
+    Download,
+} from "lucide-react"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { Card, CardContent } from "@/components/ui/Card"
+import { Badge } from "@/components/ui/Badge"
+import { DataTable, Column } from "@/components/ui/DataTable"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
+import CreateOrderModal from "@/components/orders/CreateOrderModal"
+import OrderDetailModal from "@/components/orders/OrderDetailModal"
+import apiClient from "@/lib/api"
+import Link from "next/link"
+import { showToast } from "@/components/ui/Toast"
+
+const STATUS_LABELS: Record<string, string> = {
+    DRAFT: "Nháp",
+    PENDING: "Chờ xử lý",
+    CONFIRMED: "Đã xác nhận",
+    PROCESSING: "Đang xử lý",
+    SHIPPED: "Đã gửi hàng",
+    DELIVERED: "Đã giao hàng",
+    COMPLETED: "Hoàn thành",
+    CANCELLED: "Đã hủy",
+}
+
+const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info"> = {
+    DRAFT: "secondary",
+    PENDING: "warning",
+    CONFIRMED: "info",
+    PROCESSING: "info",
+    SHIPPED: "default", // Changed from primary to default
+    DELIVERED: "success",
+    COMPLETED: "success",
+    CANCELLED: "destructive",
+}
 
 export default function OrdersPage() {
-    const [orders, setOrders] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [warehouses, setWarehouses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<any>(null);
-    const { token } = useAuthStore();
+    const [orders, setOrders] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [statusFilter, setStatusFilter] = useState("")
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+    // New state for detail modal
+    const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+    const [showDetailModal, setShowDetailModal] = useState(false)
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        fetchOrders()
+    }, [])
 
-    const fetchData = async () => {
+    const fetchOrders = async () => {
         try {
-            const [ordersRes, productsRes, warehousesRes] = await Promise.all([
-                fetch('/api/orders', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('/api/products', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('/api/warehouses', { headers: { 'Authorization': `Bearer ${token}` } }),
-            ]);
-
-            const ordersData = await ordersRes.json();
-            const productsData = await productsRes.json();
-            const warehousesData = await warehousesRes.json();
-
-            setOrders(ordersData.orders || []);
-            setProducts(productsData.products || []);
-            setWarehouses(warehousesData || []);
-        } catch (error) {
-            showToast('Lỗi khi tải dữ liệu', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm('Bạn có chắc muốn xóa đơn hàng này?')) return;
-
-        try {
-            await apiClient.delete(`/orders/${id}`);
-            showToast('Xóa đơn hàng thành công', 'success');
-            fetchData();
+            setLoading(true)
+            const response = await apiClient.get("/orders")
+            setOrders(response.data.orders || [])
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Lỗi khi xóa', 'error');
+            console.error("Error fetching orders:", error)
+            showToast("Lỗi khi tải danh sách đơn hàng", "error")
+        } finally {
+            setLoading(false)
         }
-    };
+    }
 
-    const handlePDF = async (orderId: string) => {
-        const success = await generateOrderPDF(orderId, token || '');
-        if (success) {
-            showToast('Tạo PDF thành công', 'success');
-        } else {
-            showToast('Lỗi khi tạo PDF', 'error');
+    const handleDelete = async () => {
+        if (!deleteConfirm) return
+
+        try {
+            await apiClient.delete(`/orders/${deleteConfirm}`)
+            showToast("Xóa đơn hàng thành công", "success")
+            fetchOrders()
+            setDeleteConfirm(null)
+        } catch (error) {
+            console.error("Error deleting order:", error)
+            showToast("Lỗi khi xóa đơn hàng", "error")
         }
-    };
+    }
 
-    if (loading) return <div className="p-6">Đang tải...</div>;
+    const filteredOrders = orders.filter((order) => {
+        const matchesSearch =
+            order.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesStatus = !statusFilter || order.status === statusFilter
+
+        return matchesSearch && matchesStatus
+    })
+
+    const columns: Column<any>[] = [
+        {
+            header: "Mã Đơn",
+            accessorKey: "code",
+            sortable: true,
+            cell: (order) => <span className="font-medium">{order.code}</span>,
+        },
+        {
+            header: "Khách Hàng",
+            accessorKey: "customer",
+            sortable: true,
+            cell: (order) => (
+                <div>
+                    <div className="font-medium">{order.customer}</div>
+                    <div className="text-xs text-muted-foreground">{order.phone}</div>
+                </div>
+            ),
+        },
+        {
+            header: "Ngày Tạo",
+            accessorKey: "createdAt",
+            sortable: true,
+            cell: (order) => (
+                <span className="text-muted-foreground">
+                    {new Date(order.createdAt || order.date).toLocaleDateString("vi-VN")}
+                </span>
+            ),
+        },
+        {
+            header: "Tổng Tiền",
+            accessorKey: "totalAmount",
+            sortable: true,
+            className: "text-right",
+            cell: (order) => (
+                <span className="font-bold">
+                    {order.totalAmount?.toLocaleString("vi-VN")} đ
+                </span>
+            ),
+        },
+        {
+            header: "Trạng Thái",
+            accessorKey: "status",
+            className: "text-center",
+            cell: (order) => (
+                <Badge variant={STATUS_VARIANTS[order.status] || "secondary"}>
+                    {STATUS_LABELS[order.status] || order.status}
+                </Badge>
+            ),
+        },
+        {
+            header: "Thao Tác",
+            className: "text-right",
+            cell: (order) => (
+                <div className="flex justify-end gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                            setSelectedOrderId(order.id)
+                            setShowDetailModal(true)
+                        }}
+                    >
+                        <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteConfirm(order.id)
+                        }}
+                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ]
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Đơn hàng ({orders.length})</h1>
-                <button
-                    onClick={() => { setSelectedOrder(null); setIsModalOpen(true); }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                    + Tạo đơn hàng
-                </button>
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Đơn Hàng</h1>
+                    <p className="text-muted-foreground mt-1">
+                        Quản lý tất cả đơn hàng bán hàng
+                    </p>
+                </div>
+                <Button onClick={() => setShowCreateModal(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Tạo Đơn Hàng
+                </Button>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã đơn</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khách hàng</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {orders.map((order) => (
-                            <tr key={order.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{order.code}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">{order.customer}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(order.date).toLocaleDateString('vi-VN')}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">{order.totalAmount.toLocaleString()} đ</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <span className={`px-2 py-1 rounded text-xs ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                        {order.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <button
-                                        onClick={() => handlePDF(order.id)}
-                                        className="text-green-600 hover:text-green-900 mr-3"
-                                    >
-                                        PDF
-                                    </button>
-                                    <button
-                                        onClick={() => { setSelectedOrder(order); setIsModalOpen(true); }}
-                                        className="text-blue-600 hover:text-blue-900 mr-3"
-                                    >
-                                        Sửa
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(order.id)}
-                                        className="text-red-600 hover:text-red-900"
-                                    >
-                                        Xóa
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            {/* Filters */}
+            <Card>
+                <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Tìm kiếm theo mã, khách hàng, SĐT..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                        <div className="relative">
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Tất cả trạng thái</option>
+                                {Object.keys(STATUS_LABELS).map((status) => (
+                                    <option key={status} value={status}>
+                                        {STATUS_LABELS[status]}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex items-center justify-end space-x-2">
+                            <Button variant="outline" onClick={fetchOrders} title="Làm mới">
+                                <RefreshCw className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" title="Xuất Excel">
+                                <Download className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-            <OrderForm
-                isOpen={isModalOpen}
-                onClose={() => { setIsModalOpen(false); setSelectedOrder(null); }}
-                order={selectedOrder}
-                products={products}
-                warehouses={warehouses}
-                onSuccess={fetchData}
+            {/* Orders Table */}
+            <DataTable
+                data={filteredOrders}
+                columns={columns}
+                keyExtractor={(item) => item.id}
+                isLoading={loading}
+                emptyMessage={
+                    searchTerm || statusFilter
+                        ? "Không tìm thấy đơn hàng phù hợp"
+                        : "Chưa có đơn hàng nào"
+                }
+                onRowClick={(order) => {
+                    setSelectedOrderId(order.id)
+                    setShowDetailModal(true)
+                }}
+            />
+
+            {/* Create Order Modal */}
+            <CreateOrderModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={() => {
+                    setShowCreateModal(false)
+                    fetchOrders()
+                }}
+            />
+
+            {/* Order Detail Modal */}
+            <OrderDetailModal
+                isOpen={showDetailModal}
+                onClose={() => setShowDetailModal(false)}
+                orderId={selectedOrderId}
+                onDeleteSuccess={() => {
+                    fetchOrders()
+                    setShowDetailModal(false)
+                }}
+            />
+
+            <ConfirmModal
+                isOpen={!!deleteConfirm}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Xác nhận xóa"
+                message="Bạn có chắc muốn xóa đơn hàng này? Hành động này không thể hoàn tác."
+                variant="danger"
             />
         </div>
-    );
+    )
 }

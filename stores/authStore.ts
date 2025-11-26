@@ -9,6 +9,7 @@ interface User {
     role: string;
     permissions: string;
     pagePermissions: any;
+    avatar?: string;
 }
 
 interface AuthState {

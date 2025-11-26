@@ -34,7 +34,7 @@ export async function GET(
         return NextResponse.json({
             order,
             type: 'ORDER',
-            title: 'ĐƠN HÀNG',
+            title: 'PHIẾU THU',
         });
     } catch (error) {
         console.error('Error fetching order for PDF:', error);

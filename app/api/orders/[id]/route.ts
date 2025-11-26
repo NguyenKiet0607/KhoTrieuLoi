@@ -163,6 +163,12 @@ export async function DELETE(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Get order details first to find file paths
+        const orderToDelete = await prisma.order.findUnique({
+            where: { id: params.id },
+            select: { documentPath: true, paymentReceiptPath: true }
+        });
+
         await prisma.$transaction(async (tx) => {
             const order = await tx.order.findUnique({
                 where: { id: params.id },
@@ -195,10 +201,46 @@ export async function DELETE(
                 }
             }
 
+            // Delete OrderItems first
+            await tx.orderItem.deleteMany({
+                where: { orderId: params.id },
+            });
+
             await tx.order.delete({
                 where: { id: params.id },
             });
         });
+
+        // Delete associated files after successful DB deletion
+        if (orderToDelete) {
+            const fs = require('fs');
+            const path = require('path');
+            const publicDir = path.join(process.cwd(), 'public');
+
+            if (orderToDelete.documentPath) {
+                const filePath = path.join(publicDir, orderToDelete.documentPath);
+                if (fs.existsSync(filePath)) {
+                    try {
+                        fs.unlinkSync(filePath);
+                        console.log(`Deleted order document: ${filePath}`);
+                    } catch (err) {
+                        console.error(`Failed to delete order document: ${filePath}`, err);
+                    }
+                }
+            }
+
+            if (orderToDelete.paymentReceiptPath) {
+                const filePath = path.join(publicDir, orderToDelete.paymentReceiptPath);
+                if (fs.existsSync(filePath)) {
+                    try {
+                        fs.unlinkSync(filePath);
+                        console.log(`Deleted payment receipt: ${filePath}`);
+                    } catch (err) {
+                        console.error(`Failed to delete payment receipt: ${filePath}`, err);
+                    }
+                }
+            }
+        }
 
         return NextResponse.json({ message: 'Order deleted successfully' });
     } catch (error) {

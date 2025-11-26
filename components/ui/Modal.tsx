@@ -1,17 +1,19 @@
-'use client';
+"use client"
 
-import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import * as React from "react"
+import { createPortal } from "react-dom"
+import { X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/Button"
 
 interface ModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    title: string;
-    children: React.ReactNode;
-    footer?: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+    isOpen: boolean
+    onClose: () => void
+    title: string
+    children: React.ReactNode
+    footer?: React.ReactNode
+    size?: "sm" | "md" | "lg" | "xl" | "full"
 }
 
 export default function Modal({
@@ -20,84 +22,97 @@ export default function Modal({
     title,
     children,
     footer,
-    size = 'md',
+    size = "md",
 }: ModalProps) {
-    const [mounted, setMounted] = useState(false);
+    const [mounted, setMounted] = React.useState(false)
 
-    useEffect(() => {
-        setMounted(true);
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
 
+    React.useEffect(() => {
         if (isOpen) {
-            document.body.style.overflow = 'hidden';
+            document.body.style.overflow = "hidden"
         } else {
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = "unset"
         }
-
         return () => {
-            document.body.style.overflow = 'unset';
-        };
-    }, [isOpen]);
+            document.body.style.overflow = "unset"
+        }
+    }, [isOpen])
 
-    // Close on escape key
-    useEffect(() => {
+    React.useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleEsc);
-        return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+            if (e.key === "Escape") onClose()
+        }
+        window.addEventListener("keydown", handleEsc)
+        return () => window.removeEventListener("keydown", handleEsc)
+    }, [onClose])
 
-    if (!mounted || !isOpen) return null;
+    if (!mounted) return null
 
     const sizes = {
-        sm: 'md:max-w-md',
-        md: 'md:max-w-lg',
-        lg: 'md:max-w-2xl',
-        xl: 'md:max-w-4xl',
-        full: 'md:max-w-[95vw]',
-    } as const;
+        sm: "max-w-md",
+        md: "max-w-lg",
+        lg: "max-w-2xl",
+        xl: "max-w-4xl",
+        full: "max-w-[95vw]",
+    } as const
 
-    const modalContent = (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-            {/* Backdrop */}
-            <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity animate-fade-in"
-                onClick={onClose}
-            />
-
-            {/* Modal Panel */}
-            <div
-                className={`relative w-full ${sizes[size]} bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-fade-in`}
-                role="dialog"
-                aria-modal="true"
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                        {title}
-                    </h3>
-                    <button
+    return createPortal(
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-background/80 backdrop-blur-sm"
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-500 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                    />
+
+                    {/* Modal Panel */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className={cn(
+                            "relative w-full bg-card text-card-foreground rounded-xl border shadow-lg flex flex-col max-h-[90vh]",
+                            sizes[size]
+                        )}
+                        role="dialog"
+                        aria-modal="true"
                     >
-                        <X size={20} />
-                    </button>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                            <h3 className="text-lg font-semibold leading-none tracking-tight">
+                                {title}
+                            </h3>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={onClose}
+                                className="h-8 w-8 rounded-full"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+
+                        {/* Footer */}
+                        {footer && (
+                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-muted/50 rounded-b-xl">
+                                {footer}
+                            </div>
+                        )}
+                    </motion.div>
                 </div>
-
-                {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    {children}
-                </div>
-
-                {/* Footer */}
-                {footer && (
-                    <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
-                        {footer}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-
-    return createPortal(modalContent, document.body);
+            )}
+        </AnimatePresence>,
+        document.body
+    )
 }

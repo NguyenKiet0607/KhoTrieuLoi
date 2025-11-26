@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAuth } from '@/lib/auth';
 import { logActivity } from '@/lib/activityLogger';
+import { generateAndSaveOrderPDF } from '@/lib/serverPdfGenerator';
 
 // GET /api/orders - Lấy danh sách đơn hàng
 export async function GET(request: NextRequest) {
@@ -119,6 +120,35 @@ export async function POST(request: NextRequest) {
         // Calculate total
         const totalAmount = items.reduce((sum: number, item: any) => sum + item.amount, 0);
 
+        // Check if customer exists, if not create one
+        const existingCustomer = await prisma.customer.findFirst({
+            where: { name: customer }
+        });
+
+        if (!existingCustomer) {
+            await prisma.customer.create({
+                data: {
+                    id: `cust_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    name: customer,
+                    phone: phone || null,
+                    address: address || null,
+                    totalOrders: 1,
+                    totalSpent: totalAmount,
+                    updatedAt: new Date(),
+                }
+            });
+        } else {
+            // Update existing customer stats
+            await prisma.customer.update({
+                where: { id: existingCustomer.id },
+                data: {
+                    totalOrders: existingCustomer.totalOrders + 1,
+                    totalSpent: existingCustomer.totalSpent + totalAmount,
+                    updatedAt: new Date(),
+                }
+            });
+        }
+
         // Create order with items and update stock
         const order = await prisma.$transaction(async (tx) => {
             const newOrder = await tx.order.create({
@@ -180,6 +210,26 @@ export async function POST(request: NextRequest) {
 
             return newOrder;
         });
+
+
+
+        // Fetch full order details for PDF generation
+        const fullOrder = await prisma.order.findUnique({
+            where: { id: order.id },
+            include: {
+                Warehouse: true,
+                User: { select: { id: true, name: true, email: true } },
+                OrderItem: {
+                    include: {
+                        Product: true,
+                    },
+                },
+            },
+        });
+
+        // if (fullOrder) {
+        //     await generateAndSaveOrderPDF(fullOrder);
+        // }
 
         // Log activity
         await logActivity({

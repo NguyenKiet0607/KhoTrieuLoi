@@ -1,142 +1,200 @@
-'use client';
+"use client"
 
-import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
-import { TransferForm } from '@/components/forms/TransferForm';
-import { showToast } from '@/components/ui/Toast';
-import { generateTransferPDF } from '@/lib/pdfGenerator';
-import apiClient from '@/lib/api';
+import React, { useEffect, useState } from "react"
+import apiClient from "@/lib/api"
+import { showToast } from "@/components/ui/Toast"
+import {
+    ArrowLeftRight,
+    Plus,
+    Search,
+    Eye,
+    Download,
+    RefreshCw,
+} from "lucide-react"
+import Link from "next/link"
+import { DataTable, Column } from "@/components/ui/DataTable"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { Badge } from "@/components/ui/Badge"
+
+const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info"> = {
+    DRAFT: "secondary",
+    PENDING: "warning",
+    IN_TRANSIT: "info",
+    RECEIVED: "success",
+    CANCELLED: "destructive",
+}
+
+const STATUS_LABELS: Record<string, string> = {
+    DRAFT: "Nháp",
+    PENDING: "Chờ duyệt",
+    IN_TRANSIT: "Đang chuyển",
+    RECEIVED: "Đã nhận",
+    CANCELLED: "Đã hủy",
+}
 
 export default function TransfersPage() {
-    const [transfers, setTransfers] = useState<any[]>([]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [warehouses, setWarehouses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
-    const { token } = useAuthStore();
+    const [transfers, setTransfers] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [statusFilter, setStatusFilter] = useState("")
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        fetchTransfers()
+    }, [])
 
-    const fetchData = async () => {
+    const fetchTransfers = async () => {
         try {
-            const [transfersRes, productsRes, warehousesRes] = await Promise.all([
-                fetch('/api/transfers', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('/api/products', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('/api/warehouses', { headers: { 'Authorization': `Bearer ${token}` } }),
-            ]);
-
-            const transfersData = await transfersRes.json();
-            const productsData = await productsRes.json();
-            const warehousesData = await warehousesRes.json();
-
-            setTransfers(transfersData.transfers || []);
-            setProducts(productsData.products || []);
-            setWarehouses(warehousesData || []);
-        } catch (error) {
-            showToast('Lỗi khi tải dữ liệu', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm('Bạn có chắc muốn xóa phiếu chuyển này?')) return;
-
-        try {
-            await apiClient.delete(`/transfers/${id}`);
-            showToast('Xóa phiếu chuyển thành công', 'success');
-            fetchData();
+            setLoading(true)
+            const response = await apiClient.get("/transfers")
+            setTransfers(response.data || [])
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Lỗi khi xóa', 'error');
+            console.error("Error fetching transfers:", error)
+            showToast("Lỗi khi tải phiếu chuyển", "error")
+        } finally {
+            setLoading(false)
         }
-    };
+    }
 
-    const handlePDF = async (transferId: string) => {
-        const success = await generateTransferPDF(transferId, token || '');
-        if (success) {
-            showToast('Tạo PDF thành công', 'success');
-        } else {
-            showToast('Lỗi khi tạo PDF', 'error');
-        }
-    };
+    const filteredTransfers = Array.isArray(transfers)
+        ? transfers.filter((transfer) => {
+            const matchesSearch = transfer.code
+                ?.toLowerCase()
+                .includes(searchTerm.toLowerCase())
+            const matchesStatus = !statusFilter || transfer.status === statusFilter
+            return matchesSearch && matchesStatus
+        })
+        : []
 
-    if (loading) return <div className="p-6">Đang tải...</div>;
+    const columns: Column<any>[] = [
+        {
+            header: "Mã phiếu",
+            accessorKey: "code",
+            sortable: true,
+            cell: (transfer) => (
+                <div className="flex items-center">
+                    <ArrowLeftRight className="w-4 h-4 text-purple-600 mr-2" />
+                    <span className="font-medium">{transfer.code}</span>
+                </div>
+            ),
+        },
+        {
+            header: "Ngày chuyển",
+            accessorKey: "date",
+            sortable: true,
+            cell: (transfer) => (
+                <span className="text-muted-foreground">
+                    {new Date(transfer.date).toLocaleDateString("vi-VN")}
+                </span>
+            ),
+        },
+        {
+            header: "Từ kho",
+            accessorKey: "fromWarehouse.name",
+            sortable: true,
+            cell: (transfer) => <span>{transfer.fromWarehouse?.name || "N/A"}</span>,
+        },
+        {
+            header: "Đến kho",
+            accessorKey: "toWarehouse.name",
+            sortable: true,
+            cell: (transfer) => <span>{transfer.toWarehouse?.name || "N/A"}</span>,
+        },
+        {
+            header: "Trạng thái",
+            accessorKey: "status",
+            sortable: true,
+            cell: (transfer) => (
+                <Badge variant={STATUS_VARIANTS[transfer.status] || "outline"}>
+                    {STATUS_LABELS[transfer.status] || transfer.status}
+                </Badge>
+            ),
+        },
+        {
+            header: "Thao tác",
+            className: "text-right",
+            cell: (transfer) => (
+                <div className="flex justify-end gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="Xem"
+                    >
+                        <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="In"
+                    >
+                        <Download className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ]
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Phiếu chuyển kho ({transfers.length})</h1>
-                <button
-                    onClick={() => { setSelectedTransfer(null); setIsModalOpen(true); }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                    + Tạo phiếu chuyển
-                </button>
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">
+                        Phiếu chuyển kho
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                        Tổng số: <span className="font-semibold">{transfers.length}</span>{" "}
+                        phiếu
+                    </p>
+                </div>
+                <div className="flex space-x-2">
+                    <Button variant="outline" onClick={fetchTransfers}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Làm mới
+                    </Button>
+                    <Link href="/transfers/new">
+                        <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Tạo phiếu chuyển
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã phiếu</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Từ kho</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đến kho</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {transfers.map((transfer) => (
-                            <tr key={transfer.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{transfer.code}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">{transfer.Warehouse_StockTransfer_fromWarehouseIdToWarehouse?.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">{transfer.Warehouse_StockTransfer_toWarehouseIdToWarehouse?.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(transfer.date).toLocaleDateString('vi-VN')}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-purple-600">{transfer.totalAmount.toLocaleString()} đ</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <span className={`px-2 py-1 rounded text-xs ${transfer.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                        {transfer.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <button
-                                        onClick={() => handlePDF(transfer.id)}
-                                        className="text-green-600 hover:text-green-900 mr-3"
-                                    >
-                                        PDF
-                                    </button>
-                                    <button
-                                        onClick={() => { setSelectedTransfer(transfer); setIsModalOpen(true); }}
-                                        className="text-blue-600 hover:text-blue-900 mr-3"
-                                    >
-                                        Sửa
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(transfer.id)}
-                                        className="text-red-600 hover:text-red-900"
-                                    >
-                                        Xóa
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Tìm kiếm theo mã phiếu..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9"
+                    />
+                </div>
+                <div>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="DRAFT">Nháp</option>
+                        <option value="PENDING">Chờ duyệt</option>
+                        <option value="IN_TRANSIT">Đang chuyển</option>
+                        <option value="RECEIVED">Đã nhận</option>
+                        <option value="CANCELLED">Đã hủy</option>
+                    </select>
+                </div>
             </div>
 
-            <TransferForm
-                isOpen={isModalOpen}
-                onClose={() => { setIsModalOpen(false); setSelectedTransfer(null); }}
-                transfer={selectedTransfer}
-                products={products}
-                warehouses={warehouses}
-                onSuccess={fetchData}
+            <DataTable
+                data={filteredTransfers}
+                columns={columns}
+                keyExtractor={(item) => item.id}
+                isLoading={loading}
+                emptyMessage="Không tìm thấy phiếu chuyển nào"
             />
         </div>
-    );
+    )
 }

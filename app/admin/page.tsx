@@ -1,61 +1,107 @@
-'use client';
+"use client"
 
-import React from 'react';
-import Link from 'next/link';
-import { useAuthStore } from '@/stores/authStore';
+import React from "react"
+import Link from "next/link"
+import { useAuthStore } from "@/stores/authStore"
+import { Users, Shield, Activity, Database, ArrowLeft } from "lucide-react"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/Card"
+import { Button } from "@/components/ui/Button"
 
 export default function AdminPage() {
-    const { user } = useAuthStore();
+    const { user } = useAuthStore()
 
-    if (user?.role !== 'ADMIN') {
+    if (user?.role !== "ADMIN") {
         return (
-            <div className="p-6 text-center">
-                <h1 className="text-2xl font-bold text-red-600">Truy cập bị từ chối</h1>
-                <p className="mt-2 text-gray-600">Bạn không có quyền truy cập trang này.</p>
-                <Link href="/dashboard" className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    Về trang chủ
+            <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+                <Shield className="w-16 h-16 text-destructive mb-4" />
+                <h1 className="text-2xl font-bold text-destructive">
+                    Truy cập bị từ chối
+                </h1>
+                <p className="mt-2 text-muted-foreground">
+                    Bạn không có quyền truy cập trang này.
+                </p>
+                <Link href="/dashboard" className="mt-6">
+                    <Button>
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Về trang chủ
+                    </Button>
                 </Link>
             </div>
-        );
+        )
     }
 
+    const adminModules = [
+        {
+            title: "Quản lý người dùng",
+            description: "Thêm, sửa, xóa và phân quyền người dùng.",
+            icon: Users,
+            href: "/users",
+            color: "text-blue-600",
+            bgColor: "bg-blue-100",
+        },
+        {
+            title: "Phân quyền chi tiết",
+            description: "Cấu hình quyền truy cập chi tiết cho từng vai trò.",
+            icon: Shield,
+            href: "/admin/permissions",
+            color: "text-purple-600",
+            bgColor: "bg-purple-100",
+        },
+        {
+            title: "Nhật ký hoạt động",
+            description: "Xem lịch sử thao tác của người dùng trên hệ thống.",
+            icon: Activity,
+            href: "/activity-logs",
+            color: "text-orange-600",
+            bgColor: "bg-orange-100",
+        },
+        {
+            title: "Sao lưu & Phục hồi",
+            description: "Quản lý sao lưu dữ liệu và phục hồi khi cần thiết.",
+            icon: Database,
+            href: "/admin/backup",
+            color: "text-green-600",
+            bgColor: "bg-green-100",
+        },
+    ]
+
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Quản trị hệ thống</h1>
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Quản trị hệ thống</h1>
+                <p className="text-muted-foreground mt-1">
+                    Trung tâm điều khiển và cấu hình hệ thống
+                </p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Link href="/users" className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium text-gray-900">Quản lý người dùng</h3>
-                        <i className="fas fa-users text-blue-600 text-xl"></i>
-                    </div>
-                    <p className="text-sm text-gray-500">Thêm, sửa, xóa và phân quyền người dùng.</p>
-                </Link>
-
-                <Link href="/admin/permissions" className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium text-gray-900">Phân quyền chi tiết</h3>
-                        <i className="fas fa-shield-alt text-purple-600 text-xl"></i>
-                    </div>
-                    <p className="text-sm text-gray-500">Cấu hình quyền truy cập chi tiết cho từng vai trò.</p>
-                </Link>
-
-                <Link href="/activity-logs" className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium text-gray-900">Nhật ký hoạt động</h3>
-                        <i className="fas fa-history text-orange-600 text-xl"></i>
-                    </div>
-                    <p className="text-sm text-gray-500">Xem lịch sử thao tác của người dùng trên hệ thống.</p>
-                </Link>
-
-                <Link href="/admin/backup" className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium text-gray-900">Sao lưu & Phục hồi</h3>
-                        <i className="fas fa-database text-green-600 text-xl"></i>
-                    </div>
-                    <p className="text-sm text-gray-500">Quản lý sao lưu dữ liệu và phục hồi khi cần thiết.</p>
-                </Link>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {adminModules.map((module) => {
+                    const Icon = module.icon
+                    return (
+                        <Link key={module.href} href={module.href}>
+                            <Card className="h-full hover:shadow-lg transition-all duration-200 hover:-translate-y-1 cursor-pointer">
+                                <CardHeader>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div
+                                            className={`p-3 rounded-lg ${module.bgColor} ${module.color}`}
+                                        >
+                                            <Icon className="w-6 h-6" />
+                                        </div>
+                                    </div>
+                                    <CardTitle className="text-xl">{module.title}</CardTitle>
+                                    <CardDescription>{module.description}</CardDescription>
+                                </CardHeader>
+                            </Card>
+                        </Link>
+                    )
+                })}
             </div>
         </div>
-    );
+    )
 }

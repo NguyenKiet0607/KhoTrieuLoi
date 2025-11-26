@@ -34,6 +34,18 @@ model Category {
   Product     Product[]
 }
 
+model Customer {
+  id          String   @id
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  totalOrders Int      @default(0)
+  totalSpent  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+}
+
 model Debt {
   id              String    @id
   companyName     String
@@ -73,6 +85,7 @@ model Order {
   Warehouse          Warehouse   @relation(fields: [warehouseId], references: [id])
   User               User        @relation(fields: [userId], references: [id])
   OrderItem          OrderItem[]
+  DeliveryReceipt    DeliveryReceipt[]
 }
 
 model OrderItem {
@@ -260,6 +273,7 @@ model User {
   StockIssue      StockIssue[]
   StockReceipt    StockReceipt[]
   StockTransfer   StockTransfer[]
+  DeliveryReceipt DeliveryReceipt[]
 }
 
 model Warehouse {
@@ -273,4 +287,34 @@ model Warehouse {
   StockItem                                              StockItem[]
   StockTransfer_StockTransfer_toWarehouseIdToWarehouse   StockTransfer[] @relation("StockTransfer_toWarehouseIdToWarehouse")
   StockTransfer_StockTransfer_fromWarehouseIdToWarehouse StockTransfer[] @relation("StockTransfer_fromWarehouseIdToWarehouse")
+}
+
+model ShippingCompany {
+  id              String            @id
+  name            String
+  phone           String?
+  address         String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  DeliveryReceipt DeliveryReceipt[]
+}
+
+model DeliveryReceipt {
+  id                     String           @id
+  orderId                String
+  deliveryDate           DateTime
+  deliveryLocation       String?
+  deliveryMethod         String           @default("SELF")
+  shippingCompanyId      String?
+  shippingCompanyName    String?
+  shippingCompanyPhone   String?
+  shippingCompanyAddress String?
+  terms                  String?
+  notes                  String?
+  createdBy              String
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime
+  Order                  Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ShippingCompany        ShippingCompany? @relation(fields: [shippingCompanyId], references: [id])
+  User                   User             @relation(fields: [createdBy], references: [id])
 }

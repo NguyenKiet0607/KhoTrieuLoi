@@ -1,28 +1,37 @@
-'use client';
+"use client"
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
-import { showToast } from '@/components/ui/Toast';
-import { User, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
-import Link from 'next/link';
+import React, { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/stores/authStore"
+import { showToast } from "@/components/ui/Toast"
+import { User, Lock, Loader2, Eye, EyeOff, Warehouse } from "lucide-react"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/Card"
 
 const loginSchema = z.object({
-    identifier: z.string().min(1, 'Vui lòng nhập tên đăng nhập hoặc email'),
-    password: z.string().min(1, 'Vui lòng nhập mật khẩu'),
+    identifier: z.string().min(1, "Vui lòng nhập tên đăng nhập hoặc email"),
+    password: z.string().min(1, "Vui lòng nhập mật khẩu"),
     rememberMe: z.boolean().optional(),
-});
+})
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
-    const router = useRouter();
-    const { login } = useAuthStore();
-    const [isLoading, setIsLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+    const router = useRouter()
+    const { login } = useAuthStore()
+    const [isLoading, setIsLoading] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
 
     const {
         register,
@@ -31,99 +40,115 @@ export default function LoginPage() {
     } = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
-            identifier: '',
-            password: '',
+            identifier: "",
+            password: "",
             rememberMe: false,
         },
-    });
+    })
 
     const onSubmit = async (data: LoginFormValues) => {
-        setIsLoading(true);
+        setIsLoading(true)
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
-            });
+            })
 
-            const result = await response.json();
+            const result = await response.json()
 
             if (!response.ok) {
-                throw new Error(result.error || 'Đăng nhập thất bại');
+                throw new Error(result.error || "Đăng nhập thất bại")
             }
 
-            login(result.token, result.user);
-            showToast('Đăng nhập thành công', 'success');
+            login(result.token, result.user)
+            showToast("Đăng nhập thành công", "success")
 
             // Set cookie for middleware
-            document.cookie = `token=${result.token}; path=/; max-age=${data.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60}`;
+            document.cookie = `token=${result.token}; path=/; max-age=${data.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60
+                }`
 
-            router.push('/dashboard');
+            router.push("/dashboard")
         } catch (error: any) {
-            showToast(error.message, 'error');
+            showToast(error.message, "error")
         } finally {
-            setIsLoading(false);
+            setIsLoading(false)
         }
-    };
+    }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-                <div className="text-center">
-                    <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
-                        <span className="text-white font-bold text-xl">KW</span>
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+            {/* Background decoration */}
+            <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
+                <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+                <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+                <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+            </div>
+
+            <Card className="w-full max-w-md z-10 shadow-2xl border-t-4 border-t-blue-600">
+                <CardHeader className="text-center space-y-2">
+                    <div className="mx-auto h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-2 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                        <Warehouse className="h-8 w-8 text-white" />
                     </div>
-                    <h2 className="text-3xl font-extrabold text-gray-900">Đăng nhập</h2>
-                    <p className="mt-2 text-sm text-gray-600">
+                    <CardTitle className="text-3xl font-bold text-gray-900">
+                        Đăng nhập
+                    </CardTitle>
+                    <CardDescription className="text-base">
                         Hệ thống quản lý kho Triệu Lợi
-                    </p>
-                </div>
-
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">
-                                Tên đăng nhập hoặc Email
-                            </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <User className="h-5 w-5 text-gray-400" />
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="identifier"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Tên đăng nhập hoặc Email
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <User className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    <Input
+                                        id="identifier"
+                                        placeholder="Nhập tài khoản đi chứ"
+                                        className={`pl-10 ${errors.identifier ? "border-red-500 focus-visible:ring-red-500" : ""
+                                            }`}
+                                        {...register("identifier")}
+                                    />
                                 </div>
-                                <input
-                                    id="identifier"
-                                    type="text"
-                                    className={`block w-full pl-10 pr-3 py-2 border ${errors.identifier ? 'border-red-300' : 'border-gray-300'
-                                        } rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                                    placeholder="admin"
-                                    {...register('identifier')}
-                                />
+                                {errors.identifier && (
+                                    <p className="text-sm text-red-500">
+                                        {errors.identifier.message}
+                                    </p>
+                                )}
                             </div>
-                            {errors.identifier && (
-                                <p className="mt-1 text-sm text-red-600">{errors.identifier.message}</p>
-                            )}
-                        </div>
 
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                Mật khẩu
-                            </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <input
-                                    id="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    className={`block w-full pl-10 pr-10 py-2 border ${errors.password ? 'border-red-300' : 'border-gray-300'
-                                        } rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                                    placeholder="••••••"
-                                    {...register('password')}
-                                />
-                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="password"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Mật khẩu
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="••••••"
+                                        className={`pl-10 pr-10 ${errors.password ? "border-red-500 focus-visible:ring-red-500" : ""
+                                            }`}
+                                        {...register("password")}
+                                    />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                                     >
                                         {showPassword ? (
                                             <EyeOff className="h-5 w-5" />
@@ -132,47 +157,62 @@ export default function LoginPage() {
                                         )}
                                     </button>
                                 </div>
+                                {errors.password && (
+                                    <p className="text-sm text-red-500">
+                                        {errors.password.message}
+                                    </p>
+                                )}
                             </div>
-                            {errors.password && (
-                                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                            <input
-                                id="remember-me"
-                                type="checkbox"
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                {...register('rememberMe')}
-                            />
-                            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                                Ghi nhớ đăng nhập
-                            </label>
                         </div>
 
-                        <div className="text-sm">
-                            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                                Quên mật khẩu?
-                            </a>
-                        </div>
-                    </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    id="remember-me"
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    {...register("rememberMe")}
+                                />
+                                <label
+                                    htmlFor="remember-me"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Ghi nhớ đăng nhập
+                                </label>
+                            </div>
 
-                    <div>
-                        <button
+                            <div className="text-sm">
+                                <a
+                                    href="#"
+                                    className="font-medium text-blue-600 hover:text-blue-500"
+                                >
+                                    Quên mật khẩu?
+                                </a>
+                            </div>
+                        </div>
+
+                        <Button
                             type="submit"
+                            className="w-full text-lg h-12"
                             disabled={isLoading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isLoading ? (
-                                <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-                            ) : null}
-                            {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
-                        </button>
-                    </div>
-                </form>
-            </div>
+                                <>
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    Đang xử lý...
+                                </>
+                            ) : (
+                                "Đăng nhập"
+                            )}
+                        </Button>
+                    </form>
+                </CardContent>
+                <CardFooter className="justify-center border-t pt-6">
+                    <p className="text-sm text-muted-foreground">
+                        © 2025 Kho Triệu Lợi. All rights reserved.
+                    </p>
+                </CardFooter>
+            </Card>
         </div>
-    );
+    )
 }

@@ -4,65 +4,138 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Gentle Professional Palette - Light Mode */
+    --background: 210 40% 98%;
+    /* Slate 50 */
+    --foreground: 222 47% 11%;
+    /* Slate 900 */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* White */
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 221.2 83.2% 53.3%;
+    /* Professional Indigo Primary */
+    --primary: 221 83% 53%;
+    /* Blue 600 */
     --primary-foreground: 210 40% 98%;
 
+    /* Gradient variables - Subtle Blue/Indigo */
+    --primary-from: 221 83% 53%;
+    /* Blue 600 */
+    --primary-to: 224 76% 48%;
+    /* Indigo 600 */
+
+    /* Soft Slate Secondary */
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Slate 100 */
+    --secondary-foreground: 222 47% 11%;
 
+    /* Muted for backgrounds */
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Slate 100 */
+    --muted-foreground: 215 16% 47%;
+    /* Slate 500 */
 
+    /* Accent for hover states */
     --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Slate 100 */
+    --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Semantic Colors - Soft & Clear */
+    --destructive: 0 84% 60%;
+    /* Red 500 */
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --success: 142 71% 45%;
+    /* Green 600 */
+    --success-foreground: 210 40% 98%;
+
+    --warning: 38 92% 50%;
+    /* Amber 500 */
+    --warning-foreground: 210 40% 98%;
+
+    --info: 199 89% 48%;
+    /* Sky 600 */
+    --info-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    /* Slate 200 */
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+    /* Blue 600 */
 
     --radius: 0.5rem;
+
+    /* Glassmorphism - Subtle */
+    --glass-bg: 255 255 255 / 0.8;
+    --glass-border: 221 83% 53% / 0.1;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* Dark Mode - Deep Slate Theme */
+    --background: 222 47% 11%;
+    /* Slate 900 */
     --foreground: 210 40% 98%;
+    /* Slate 50 */
 
-    --card: 222.2 84% 4.9%;
+    --card: 217 33% 17%;
+    /* Slate 800 */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 217 33% 17%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Primary - Lighter Blue for Dark Mode */
+    --primary: 217 91% 60%;
+    /* Blue 500 */
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --primary-from: 217 91% 60%;
+    /* Blue 500 */
+    --primary-to: 226 70% 55%;
+    /* Indigo 500 */
+
+    --secondary: 217 33% 17%;
+    /* Slate 800 */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 33% 17%;
+    /* Slate 800 */
+    --muted-foreground: 215 20% 65%;
+    /* Slate 400 */
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 217 33% 17%;
+    /* Slate 800 */
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
+    /* Red 900 */
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --success: 142 71% 45%;
+    /* Green 600 */
+    --success-foreground: 210 40% 98%;
+
+    --warning: 38 92% 50%;
+    /* Amber 500 */
+    --warning-foreground: 222 47% 11%;
+
+    --info: 199 89% 48%;
+    /* Sky 600 */
+    --info-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    /* Slate 800 */
+    --input: 217 33% 17%;
+    --ring: 224 76% 48%;
+    /* Indigo 600 */
+
+    /* Dark Glassmorphism */
+    --glass-bg: 15 23 42 / 0.6;
+    --glass-border: 255 255 255 / 0.1;
   }
 }
 
@@ -70,35 +143,217 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold tracking-tight;
   }
 }
 
-/* Custom Scrollbar */
+/* Enhanced Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  @apply bg-muted/30 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-gradient-to-b from-primary/60 to-primary/40 rounded-full;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  @apply from-primary/80 to-primary/60;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* Glassmorphism Utility */
+@layer utilities {
+  .glass {
+    background: rgba(var(--glass-bg));
+    backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(var(--glass-border));
+  }
+
+  .glass-strong {
+    background: rgba(var(--glass-bg));
+    backdrop-filter: blur(20px) saturate(200%);
+    border: 1px solid rgba(var(--glass-border));
+  }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+/* Gradient Utilities */
+@layer utilities {
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary-from)) 0%, hsl(var(--primary-to)) 100%);
+  }
+
+  .gradient-primary-hover {
+    background: linear-gradient(135deg, hsl(var(--primary-from)) 0%, hsl(var(--primary-to)) 100%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .gradient-primary-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px -10px hsla(var(--primary), 0.5);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary-from)) 0%, hsl(var(--primary-to)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Animation Keyframes */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px hsla(var(--primary), 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 40px hsla(var(--primary), 0.6);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes blob {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+/* Skeleton Loading */
+@layer components {
+  .skeleton {
+    @apply bg-muted/50 rounded animate-pulse;
+    background: linear-gradient(90deg,
+        hsla(var(--muted), 0.5) 25%,
+        hsla(var(--muted), 0.8) 50%,
+        hsla(var(--muted), 0.5) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+}
+
+/* Smooth Transitions */
+@layer base {
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}
+
+/* Focus Styles */
+@layer base {
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

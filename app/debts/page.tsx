@@ -1,115 +1,173 @@
-'use client';
+"use client"
 
-import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '@/stores/authStore';
-import { DebtForm } from '@/components/forms/DebtForm';
-import { showToast } from '@/components/ui/Toast';
-import apiClient from '@/lib/api';
+import React, { useEffect, useState } from "react"
+import { useAuthStore } from "@/stores/authStore"
+import { DebtForm } from "@/components/forms/DebtForm"
+import { showToast } from "@/components/ui/Toast"
+import apiClient from "@/lib/api"
+import { DataTable, Column } from "@/components/ui/DataTable"
+import { Button } from "@/components/ui/Button"
+import { Plus, Edit, Trash2, RefreshCw } from "lucide-react"
 
 export default function DebtsPage() {
-    const [debts, setDebts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedDebt, setSelectedDebt] = useState<any>(null);
-    const { token } = useAuthStore();
+    const [debts, setDebts] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [selectedDebt, setSelectedDebt] = useState<any>(null)
+    const { token } = useAuthStore()
 
     useEffect(() => {
-        fetchDebts();
-    }, []);
+        fetchDebts()
+    }, [])
 
     const fetchDebts = async () => {
         try {
-            const response = await fetch('/api/debts', {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-            const data = await response.json();
-            setDebts(data.debts || []);
+            setLoading(true)
+            const response = await fetch("/api/debts", {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            const data = await response.json()
+            setDebts(data.debts || [])
         } catch (error) {
-            showToast('Lỗi khi tải công nợ', 'error');
+            showToast("Lỗi khi tải công nợ", "error")
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Bạn có chắc muốn xóa công nợ này?')) return;
+        if (!confirm("Bạn có chắc muốn xóa công nợ này?")) return
 
         try {
-            await apiClient.delete(`/debts?id=${id}`);
-            showToast('Xóa công nợ thành công', 'success');
-            fetchDebts();
+            await apiClient.delete(`/debts?id=${id}`)
+            showToast("Xóa công nợ thành công", "success")
+            fetchDebts()
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Lỗi khi xóa', 'error');
+            showToast(error.response?.data?.error || "Lỗi khi xóa", "error")
         }
-    };
+    }
 
-    const totalRemaining = debts.reduce((sum, debt) => sum + debt.remainingAmount, 0);
+    const totalRemaining = debts.reduce(
+        (sum, debt) => sum + debt.remainingAmount,
+        0
+    )
 
-    if (loading) return <div className="p-6">Đang tải...</div>;
+    const columns: Column<any>[] = [
+        {
+            header: "Công ty",
+            accessorKey: "companyName",
+            sortable: true,
+            cell: (debt) => <div className="font-medium">{debt.companyName}</div>,
+        },
+        {
+            header: "Tổng tiền",
+            accessorKey: "totalAmount",
+            sortable: true,
+            cell: (debt) => <span>{debt.totalAmount.toLocaleString()} đ</span>,
+        },
+        {
+            header: "Đã thu",
+            accessorKey: "collectedAmount",
+            sortable: true,
+            cell: (debt) => (
+                <span className="text-green-600">
+                    {debt.collectedAmount.toLocaleString()} đ
+                </span>
+            ),
+        },
+        {
+            header: "Còn lại",
+            accessorKey: "remainingAmount",
+            sortable: true,
+            cell: (debt) => (
+                <span className="font-bold text-red-600">
+                    {debt.remainingAmount.toLocaleString()} đ
+                </span>
+            ),
+        },
+        {
+            header: "Hạn thanh toán",
+            accessorKey: "paymentDate",
+            sortable: true,
+            cell: (debt) => (
+                <span>{new Date(debt.paymentDate).toLocaleDateString("vi-VN")}</span>
+            ),
+        },
+        {
+            header: "Thao tác",
+            className: "text-right",
+            cell: (debt) => (
+                <div className="flex justify-end gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                            setSelectedDebt(debt)
+                            setIsModalOpen(true)
+                        }}
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                        <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(debt.id)}
+                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ]
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Công nợ ({debts.length})</h1>
-                    <p className="text-sm text-gray-600 mt-1">
-                        Tổng còn lại: <span className="font-bold text-red-600">{totalRemaining.toLocaleString()} đ</span>
+                    <h1 className="text-3xl font-bold tracking-tight">Công nợ</h1>
+                    <p className="text-muted-foreground mt-1">
+                        Tổng còn lại:{" "}
+                        <span className="font-bold text-red-600">
+                            {totalRemaining.toLocaleString()} đ
+                        </span>
                     </p>
                 </div>
-                <button
-                    onClick={() => { setSelectedDebt(null); setIsModalOpen(true); }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                    + Thêm công nợ
-                </button>
+                <div className="flex space-x-2">
+                    <Button variant="outline" onClick={fetchDebts}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Làm mới
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setSelectedDebt(null)
+                            setIsModalOpen(true)
+                        }}
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Thêm công nợ
+                    </Button>
+                </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Công ty</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đã thu</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Còn lại</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hạn thanh toán</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {debts.map((debt) => (
-                            <tr key={debt.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{debt.companyName}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">{debt.totalAmount.toLocaleString()} đ</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">{debt.collectedAmount.toLocaleString()} đ</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-red-600">{debt.remainingAmount.toLocaleString()} đ</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(debt.paymentDate).toLocaleDateString('vi-VN')}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <button
-                                        onClick={() => { setSelectedDebt(debt); setIsModalOpen(true); }}
-                                        className="text-blue-600 hover:text-blue-900 mr-3"
-                                    >
-                                        Sửa
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(debt.id)}
-                                        className="text-red-600 hover:text-red-900"
-                                    >
-                                        Xóa
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <DataTable
+                data={debts}
+                columns={columns}
+                keyExtractor={(item) => item.id}
+                isLoading={loading}
+                emptyMessage="Chưa có công nợ nào"
+            />
 
             <DebtForm
                 isOpen={isModalOpen}
-                onClose={() => { setIsModalOpen(false); setSelectedDebt(null); }}
+                onClose={() => {
+                    setIsModalOpen(false)
+                    setSelectedDebt(null)
+                }}
                 debt={selectedDebt}
                 onSuccess={fetchDebts}
             />
         </div>
-    );
+    )
 }
